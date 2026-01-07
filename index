@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Snakes & Ladders – Set Algebra (50)</title>
+
+<style>
+:root { --cell:58px; --gap:6px; --radius:14px; }
+body{
+  margin:0;font-family:system-ui,sans-serif;
+  background:#0b1220;color:#e8eefc;
+}
+header{
+  padding:14px 16px;display:flex;justify-content:space-between;
+  align-items:center;border-bottom:1px solid #1f2a44;
+}
+.wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;padding:14px}
+.card{
+  background:#0f1a30;border:1px solid #1f2a44;
+  border-radius:14px;padding:12px;
+}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.pill{
+  background:#132246;border:1px solid #223565;
+  padding:6px 10px;border-radius:999px;font-size:12px
+}
+button{
+  border:0;background:#2b57ff;color:white;
+  padding:10px 12px;border-radius:12px;
+  font-weight:650;cursor:pointer
+}
+button:disabled{opacity:.45}
+.btn2{background:#1b2b55;border:1px solid #2a3d73}
+
+.board{
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(10,var(--cell));
+  grid-template-rows:repeat(5,var(--cell));
+  gap:var(--gap);padding:10px;
+  background:#0b1328;border:1px solid #1f2a44;
+  border-radius:14px;
+}
+.cell{
+  background:#0f1a30;border:1px solid #1f2a44;
+  border-radius:12px;padding:6px;
+  display:flex;justify-content:flex-end;
+  font-size:12px;color:#b8c7ee;
+  position:relative
+}
+.cell .tag{
+  position:absolute;left:8px;bottom:6px;
+  font-size:11px;color:#d6ddff
+}
+.cell.ladder{outline:2px solid rgba(80,255,160,.35)}
+.cell.snake{outline:2px solid rgba(255,80,80,.35)}
+
+.tokens{position:absolute;inset:0;pointer-events:none}
+.token{
+  position:absolute;width:16px;height:16px;
+  border-radius:999px;border:2px solid #fff;
+  transform:translate(-50%,-50%)
+}
+
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.team{display:flex;gap:10px;align-items:center;
+  padding:8px;border:1px solid #1f2a44;border-radius:12px}
+.dot{width:14px;height:14px;border-radius:999px;border:2px solid #fff}
+
+.dice{
+  display:inline-grid;place-items:center;
+  width:28px;height:28px;border-radius:10px;
+  background:#0b1328;border:1px solid #223565;
+  font-size:18px;margin-right:6px
+}
+
+.modal{
+  position:fixed;inset:0;display:none;
+  place-items:center;background:rgba(0,0,0,.6)
+}
+.modal.open{display:grid}
+.modal .box{
+  background:#0f1a30;border:1px solid #2a3d73;
+  border-radius:18px;padding:14px;width:min(760px,100%)
+}
+.choice{display:flex;gap:8px;align-items:flex-start;
+  border:1px solid #1f2a44;background:#0b1328;
+  padding:8px;border-radius:10px;cursor:pointer
+}
+.log{max-height:260px;overflow:auto;font-size:12px}
+.log div{border-bottom:1px dashed rgba(255,255,255,.1);padding:4px 0}
+</style>
+</head>
+
+<body>
+<header>
+  <div>
+    <b>🎲 บันไดงู : พีชคณิตของเซต (50 ช่อง)</b><br/>
+    <small>ตอบถูกถึงจะเดิน • แสดงลูกเต๋า + step การเดิน</small>
+  </div>
+  <div class="row">
+    <button class="btn2" id="resetBtn">รีเซ็ต</button>
+    <button id="rollBtn">ทอยเต๋า</button>
+  </div>
+</header>
+
+<div class="wrap">
+<!-- BOARD -->
+<div class="card">
+  <div class="row">
+    <span class="pill">ตาเล่น: <b id="turnName"></b></span>
+    <span class="pill">ตำแหน่ง: <b id="turnPos"></b></span>
+    <span class="pill">
+      ลูกเต๋า: <span id="diceFace" class="dice">–</span>
+      <b id="lastRoll">-</b>
+    </span>
+  </div>
+
+  <div style="margin-top:10px">
+    <div class="board" id="board"></div>
+    <div class="pill" style="margin-top:10px;width:100%">
+      เส้นทางการเดิน: <b id="moveSteps">-</b>
+    </div>
+  </div>
+</div>
+
+<!-- SIDE -->
+<div class="card">
+  <b>ทีมทั้งหมด</b>
+  <div class="legend" id="teamList"></div>
+
+  <div style="margin-top:10px">
+    <b>Log การเล่น</b>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+</div>
+
+<!-- QUESTION MODAL -->
+<div class="modal" id="qModal">
+<div class="box">
+  <b id="qTitle"></b>
+  <div id="qPrompt" style="margin:8px 0"></div>
+  <div id="qChoices"></div>
+  <div class="row" style="margin-top:10px;justify-content:space-between">
+    <span>เวลา: <b id="qTimer">30</b>s</span>
+    <div>
+      <button class="btn2" id="skipBtn">ข้าม</button>
+      <button id="submitBtn">ตอบ</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+/* ---------- CONFIG ---------- */
+const WIN=50;
+const LADDER=new Map([[2,11],[6,16],[9,22],[14,27],[20,35],[26,41],[33,45]]);
+const SNAKE=new Map([[18,7],[24,12],[29,17],[37,23],[43,30],[47,34],[49,38]]);
+const TEAMS=[
+ {name:"ทีม A",color:"#2b57ff",pos:1,score:0},
+ {name:"ทีม B",color:"#ff7a42",pos:1,score:0},
+ {name:"ทีม C",color:"#7bffb0",pos:1,score:0},
+ {name:"ทีม D",color:"#ff4fa3",pos:1,score:0},
+ {name:"ทีม E",color:"#ffd34a",pos:1,score:0},
+ {name:"ทีม F",color:"#9a7bff",pos:1,score:0},
+];
+
+/* ---------- QUESTIONS (30) ---------- */
+const QUESTION_BANK=[
+ {id:"Q1",level:1,prompt:"A ∪ ∅ = ?",choices:["∅","A","U","Aᶜ"],answer:1},
+ {id:"Q2",level:1,prompt:"A ∩ Aᶜ = ?",choices:["U","A","∅","B"],answer:2},
+ {id:"Q3",level:1,prompt:"A ∪ A = ?",choices:["A","U","∅","Aᶜ"],answer:0},
+ {id:"Q4",level:1,prompt:"(Aᶜ)ᶜ = ?",choices:["A","∅","U","Aᶜ"],answer:0},
+ {id:"Q5",level:1,prompt:"A ∩ U = ?",choices:["A","U","∅","Aᶜ"],answer:0},
+
+ {id:"Q6",level:2,prompt:"A \\ B เท่ากับ?",choices:["A∪Bᶜ","A∩Bᶜ","Aᶜ∩B","(A∩B)ᶜ"],answer:1},
+ {id:"Q7",level:2,prompt:"(A∩B)∪(A∩Bᶜ) = ?",choices:["A","B","A∪B","∅"],answer:0},
+ {id:"Q8",level:2,prompt:"(A∪B)∩(A∪Bᶜ) = ?",choices:["A","B","A∪B","A∩B"],answer:0},
+ {id:"Q9",level:2,prompt:"A∩(B∪C) =
