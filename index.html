@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Snakes & Ladders: Set Algebra</title>
+  <title>Snakes & Ladders: Set Algebra (50)</title>
   <style>
-    :root { --cell: 52px; --gap: 6px; --radius: 14px; }
+    :root { --cell: 58px; --gap: 6px; --radius: 14px; }
     body { margin: 0; font-family: system-ui, sans-serif; background:#0b1220; color:#e8eefc; }
     header { padding: 14px 16px; display:flex; gap:12px; align-items:center; justify-content:space-between; border-bottom:1px solid #1f2a44; }
     .wrap { display:grid; grid-template-columns: 1.1fr 0.9fr; gap: 14px; padding: 14px; }
@@ -21,7 +21,7 @@
       position: relative;
       display:grid;
       grid-template-columns: repeat(10, var(--cell));
-      grid-template-rows: repeat(10, var(--cell));
+      grid-template-rows: repeat(5, var(--cell)); /* 50 ช่อง = 10x5 */
       gap: var(--gap);
       user-select:none;
       justify-content:center;
@@ -54,7 +54,6 @@
     .cell.snake { outline: 2px solid rgba(255, 80, 80, .35); }
     .cell.ladder { outline: 2px solid rgba(80, 255, 160, .35); }
 
-    /* tokens */
     .tokens { position:absolute; inset: 0; pointer-events:none; }
     .token {
       position:absolute;
@@ -70,7 +69,6 @@
     .team b { font-size: 13px; }
     .team small { display:block; color:#b8c7ee; font-size: 12px; margin-top:2px; }
 
-    /* modal */
     .modal {
       position: fixed; inset:0; display:none; place-items:center;
       background: rgba(0,0,0,.6);
@@ -105,8 +103,8 @@
 <body>
 <header>
   <div>
-    <h1>🎲 บันไดงู: พีชคณิตของเซต (Set Algebra)</h1>
-    <div class="muted">6 ทีม • ตอบถูกถึงจะเดิน • มีบันได/งู + จับเวลา + Log</div>
+    <h1>🎲 บันไดงู: พีชคณิตของเซต (50 ช่อง)</h1>
+    <div class="muted">6 ทีม • ตอบถูกถึงจะเดิน • บันได/งู + จับเวลา + Log</div>
   </div>
   <div class="row">
     <button class="btn2" id="resetBtn">รีเซ็ตเกม</button>
@@ -123,7 +121,7 @@
         <span class="pill">แต้มล่าสุด: <b id="lastRoll">-</b></span>
       </div>
       <div class="row">
-        <span class="pill">ชนะที่ช่อง <b>100</b></span>
+        <span class="pill">ชนะที่ช่อง <b id="winCell">50</b></span>
         <span class="pill">ตอบผิดเดิน <b>1</b> ช่อง</span>
       </div>
     </div>
@@ -131,7 +129,7 @@
     <div style="margin-top:12px;">
       <div class="board" id="board"></div>
       <div class="muted" style="margin-top:8px;">
-        Tip: ช่องที่มีกรอบเขียว = บันได, กรอบแดง = งู (เน้น misconception)
+        กรอบเขียว = บันได 🪜 • กรอบแดง = งู 🐍 (พลาดแบบคลาสสิก)
       </div>
     </div>
   </div>
@@ -155,7 +153,7 @@
     </div>
 
     <div style="margin-top:10px;" class="muted">
-      คีย์ลัด: <span class="kbd">Space</span> ทอยเต๋า • <span class="kbd">Esc</span> ปิดคำถาม
+      คีย์ลัด: <span class="kbd">Space</span> ทอยเต๋า • <span class="kbd">Esc</span> ถือว่าผิด/ปิดคำถาม
     </div>
   </div>
 </div>
@@ -188,6 +186,7 @@
 /** =========================
  *  CONFIG / DATA
  *  ========================= */
+const WIN = 50;
 
 // 6 ทีม (ปรับชื่อได้)
 let TEAMS = [
@@ -199,88 +198,197 @@ let TEAMS = [
   { name: "ทีม F", color: "#9a7bff", pos: 1, score: 0 },
 ];
 
-// บันได/งู (map: start -> end)
+// บันได/งู สำหรับ 50 ช่อง (start -> end)
 const LADDER = new Map([
-  [3,22],[8,26],[15,34],[21,39],[28,47],[36,55],[44,68],[59,79],
-]);
-const SNAKE = new Map([
-  [24,7],[33,13],[41,20],[49,29],[58,37],[67,46],[75,54],[88,65],
+  [2, 11],
+  [6, 16],
+  [9, 22],
+  [14, 27],
+  [20, 35],
+  [26, 41],
+  [33, 45],
 ]);
 
-// โจทย์แบบ multiple-choice (เริ่มง่ายก่อน) — เติมเพิ่มได้เรื่อย ๆ
-// note: answer = index ของ choices (0-based)
+const SNAKE = new Map([
+  [18, 7],
+  [24, 12],
+  [29, 17],
+  [37, 23],
+  [43, 30],
+  [47, 34],
+  [49, 38],
+]);
+
+// QUESTION_BANK: 30 ข้อ (L1=12, L2=10, L3=8)
 const QUESTION_BANK = [
-  // Level 1
+  // ---------- Level 1 (12) ----------
   { id:"L1-01", level:1, topic:"Identity", prompt:"ข้อใดถูกต้อง?", choices:[
-    "A ∪ ∅ = ∅",
-    "A ∪ ∅ = A",
-    "A ∩ ∅ = A",
-    "Aᶜ ∪ A = ∅"
-  ], answer:1, explain:"กฎเอกลักษณ์: A ∪ ∅ = A" },
+    "A ∪ ∅ = ∅", "A ∪ ∅ = A", "A ∩ ∅ = A", "Aᶜ ∪ A = ∅"
+  ], answer:1, explain:"Identity: A ∪ ∅ = A" },
 
   { id:"L1-02", level:1, topic:"Complement", prompt:"ข้อใดถูกต้อง?", choices:[
-    "A ∩ Aᶜ = ∅",
-    "A ∪ Aᶜ = ∅",
-    "A ∩ U = ∅",
-    "A ∪ U = A"
-  ], answer:0, explain:"กฎส่วนเติมเต็ม: A ∩ Aᶜ = ∅ และ A ∪ Aᶜ = U" },
+    "A ∩ Aᶜ = ∅", "A ∪ Aᶜ = ∅", "A ∩ U = ∅", "A ∪ U = A"
+  ], answer:0, explain:"Complement: A ∩ Aᶜ = ∅ และ A ∪ Aᶜ = U" },
 
-  { id:"L1-03", level:1, topic:"Absorption", prompt:"ยุบรูปนิพจน์: A ∪ (A ∩ B) =", choices:[
-    "A", "B", "A ∩ B", "A ∪ B"
+  { id:"L1-03", level:1, topic:"Domination", prompt:"ข้อใดถูกต้อง?", choices:[
+    "A ∪ U = A", "A ∩ U = ∅", "A ∩ U = A", "A ∩ ∅ = U"
+  ], answer:2, explain:"Domination/Identity: A ∩ U = A" },
+
+  { id:"L1-04", level:1, topic:"Idempotent", prompt:"ยุบรูป: A ∪ A =", choices:[
+    "A", "∅", "U", "Aᶜ"
+  ], answer:0, explain:"Idempotent: A ∪ A = A" },
+
+  { id:"L1-05", level:1, topic:"Idempotent", prompt:"ยุบรูป: A ∩ A =", choices:[
+    "A", "∅", "U", "Aᶜ"
+  ], answer:0, explain:"Idempotent: A ∩ A = A" },
+
+  { id:"L1-06", level:1, topic:"Commutative", prompt:"ข้อใดเป็นกฎสลับที่?", choices:[
+    "A ∪ B = B ∪ A",
+    "A ∪ (B ∪ C) = (A ∪ B) ∪ C",
+    "A ∪ (A ∩ B) = A",
+    "(A ∪ B)ᶜ = Aᶜ ∩ Bᶜ"
+  ], answer:0, explain:"Commutative: A ∪ B = B ∪ A (และ ∩ เช่นกัน)" },
+
+  { id:"L1-07", level:1, topic:"Associative", prompt:"ข้อใดเป็นกฎเปลี่ยนหมู่ (∩)?", choices:[
+    "A ∩ (B ∩ C) = (A ∩ B) ∩ C",
+    "A ∩ B = B ∩ A",
+    "A ∩ U = U",
+    "A ∩ ∅ = A"
+  ], answer:0, explain:"Associative: A ∩ (B ∩ C) = (A ∩ B) ∩ C" },
+
+  { id:"L1-08", level:1, topic:"Absorption", prompt:"ยุบรูป: A ∩ (A ∪ B) =", choices:[
+    "A", "B", "A ∪ B", "A ∩ B"
+  ], answer:0, explain:"Absorption: A ∩ (A ∪ B) = A" },
+
+  { id:"L1-09", level:1, topic:"Absorption", prompt:"ยุบรูป: A ∪ (A ∩ B) =", choices:[
+    "A", "B", "A ∪ B", "A ∩ B"
   ], answer:0, explain:"Absorption: A ∪ (A ∩ B) = A" },
 
-  { id:"L1-04", level:1, topic:"De Morgan", prompt:"(A ∪ B)ᶜ เท่ากับข้อใด?", choices:[
-    "Aᶜ ∪ Bᶜ",
-    "Aᶜ ∩ Bᶜ",
-    "A ∩ B",
-    "(Aᶜ)ᶜ ∩ (Bᶜ)ᶜ"
+  { id:"L1-10", level:1, topic:"De Morgan", prompt:"(A ∪ B)ᶜ เท่ากับข้อใด?", choices:[
+    "Aᶜ ∪ Bᶜ", "Aᶜ ∩ Bᶜ", "A ∩ B", "(Aᶜ)ᶜ ∩ (Bᶜ)ᶜ"
   ], answer:1, explain:"De Morgan: (A ∪ B)ᶜ = Aᶜ ∩ Bᶜ" },
 
-  // Level 2
+  { id:"L1-11", level:1, topic:"De Morgan", prompt:"(A ∩ B)ᶜ เท่ากับข้อใด?", choices:[
+    "Aᶜ ∩ Bᶜ", "Aᶜ ∪ Bᶜ", "A ∪ B", "Aᶜ \\ Bᶜ"
+  ], answer:1, explain:"De Morgan: (A ∩ B)ᶜ = Aᶜ ∪ Bᶜ" },
+
+  { id:"L1-12", level:1, topic:"Complement", prompt:"ยุบรูป: (Aᶜ)ᶜ =", choices:[
+    "A", "∅", "U", "Aᶜ"
+  ], answer:0, explain:"Double complement: (Aᶜ)ᶜ = A" },
+
+  // ---------- Level 2 (10) ----------
   { id:"L2-01", level:2, topic:"Difference", prompt:"A \\ B เท่ากับข้อใด?", choices:[
-    "A ∪ Bᶜ",
-    "A ∩ Bᶜ",
-    "Aᶜ ∩ B",
-    "(A ∩ B)ᶜ"
+    "A ∪ Bᶜ", "A ∩ Bᶜ", "Aᶜ ∩ B", "(A ∩ B)ᶜ"
   ], answer:1, explain:"Difference: A \\ B = A ∩ Bᶜ" },
 
   { id:"L2-02", level:2, topic:"Simplify", prompt:"ยุบรูป: (A ∩ B) ∪ (A ∩ Bᶜ) =", choices:[
     "A", "B", "A ∩ B", "A ∪ B"
-  ], answer:0, explain:"ดึง A ออก: A ∩ (B ∪ Bᶜ) = A ∩ U = A" },
+  ], answer:0, explain:"A ∩ (B ∪ Bᶜ)=A ∩ U=A" },
 
-  // Level 3
+  { id:"L2-03", level:2, topic:"Simplify", prompt:"ยุบรูป: (A ∪ B) ∩ (A ∪ Bᶜ) =", choices:[
+    "A", "B", "A ∪ B", "A ∩ B"
+  ], answer:0, explain:"Distributive: = A ∪ (B ∩ Bᶜ)=A ∪ ∅=A" },
+
+  { id:"L2-04", level:2, topic:"Distributive", prompt:"ยุบรูป: A ∩ (B ∪ C) =", choices:[
+    "(A ∩ B) ∪ (A ∩ C)",
+    "(A ∪ B) ∩ (A ∪ C)",
+    "A ∪ (B ∩ C)",
+    "(A ∩ B) ∩ C"
+  ], answer:0, explain:"Distributive: A ∩ (B ∪ C) = (A ∩ B) ∪ (A ∩ C)" },
+
+  { id:"L2-05", level:2, topic:"Distributive", prompt:"ยุบรูป: A ∪ (B ∩ C) =", choices:[
+    "(A ∪ B) ∩ (A ∪ C)",
+    "(A ∩ B) ∪ (A ∩ C)",
+    "A ∩ (B ∪ C)",
+    "A ∪ B ∪ C"
+  ], answer:0, explain:"Distributive: A ∪ (B ∩ C) = (A ∪ B) ∩ (A ∪ C)" },
+
+  { id:"L2-06", level:2, topic:"Simplify", prompt:"ยุบรูป: A ∩ (Aᶜ ∪ B) =", choices:[
+    "A ∩ B", "A ∪ B", "B", "∅"
+  ], answer:0, explain:"A ∩ (Aᶜ ∪ B)=(A ∩ Aᶜ) ∪ (A ∩ B)=∅ ∪ (A ∩ B)" },
+
+  { id:"L2-07", level:2, topic:"Simplify", prompt:"ยุบรูป: (A ∪ B) ∪ (A ∪ Bᶜ) =", choices:[
+    "A ∪ U", "A ∩ U", "A", "B"
+  ], answer:0, explain:"= A ∪ (B ∪ Bᶜ)=A ∪ U" },
+
+  { id:"L2-08", level:2, topic:"Simplify", prompt:"ยุบรูป: (A ∩ B) ∩ (A ∩ Bᶜ) =", choices:[
+    "A ∩ B", "A", "∅", "Bᶜ"
+  ], answer:2, explain:"มี B และ Bᶜ พร้อมกัน ⇒ B ∩ Bᶜ = ∅" },
+
+  { id:"L2-09", level:2, topic:"Difference", prompt:"ข้อใดเท่ากับ (A \\ B) ∪ (A ∩ B) ?", choices:[
+    "A", "B", "A ∪ B", "A \\ (A ∩ B)"
+  ], answer:0, explain:"แบ่ง A เป็นส่วนใน B และนอก B ⇒ รวมกันได้ A" },
+
+  { id:"L2-10", level:2, topic:"De Morgan", prompt:"ยุบรูป: (Aᶜ ∩ Bᶜ)ᶜ =", choices:[
+    "A ∩ B", "A ∪ B", "Aᶜ ∪ Bᶜ", "Aᶜ ∩ B"
+  ], answer:1, explain:"De Morgan: (X ∩ Y)ᶜ = Xᶜ ∪ Yᶜ ⇒ (Aᶜ ∩ Bᶜ)ᶜ = A ∪ B" },
+
+  // ---------- Level 3 (8) ----------
   { id:"L3-01", level:3, topic:"Distributive", prompt:"ยุบรูป: (A ∪ B) ∩ (A ∪ C) =", choices:[
     "A ∪ (B ∩ C)",
     "(A ∩ B) ∪ (A ∩ C)",
     "A ∩ (B ∪ C)",
-    "(A ∪ B ∪ C)"
+    "A ∪ B ∪ C"
   ], answer:0, explain:"Distributive: (A ∪ B) ∩ (A ∪ C) = A ∪ (B ∩ C)" },
+
+  { id:"L3-02", level:3, topic:"De Morgan", prompt:"นิพจน์ใดเท่ากับ (A ∩ Bᶜ)ᶜ ?", choices:[
+    "Aᶜ ∩ B", "Aᶜ ∪ B", "A ∪ Bᶜ", "Aᶜ ∩ Bᶜ"
+  ], answer:1, explain:"(A ∩ Bᶜ)ᶜ = Aᶜ ∪ (Bᶜ)ᶜ = Aᶜ ∪ B" },
+
+  { id:"L3-03", level:3, topic:"Simplify", prompt:"ยุบรูป: (A ∪ B) ∩ (Aᶜ ∪ B) =", choices:[
+    "B", "A", "A ∪ B", "A ∩ B"
+  ], answer:0, explain:"ใช้ Distributive: = (B ∪ (A ∩ Aᶜ)) = B ∪ ∅ = B" },
+
+  { id:"L3-04", level:3, topic:"Simplify", prompt:"ยุบรูป: (A ∩ B) ∪ (Aᶜ ∩ B) =", choices:[
+    "A", "B", "A ∪ B", "A ∩ B"
+  ], answer:1, explain:"ดึง B ออก: B ∩ (A ∪ Aᶜ)=B ∩ U=B" },
+
+  { id:"L3-05", level:3, topic:"Difference", prompt:"ยุบรูป: (A \\ B) \\ C =", choices:[
+    "A ∩ Bᶜ ∩ Cᶜ",
+    "A ∪ Bᶜ ∩ Cᶜ",
+    "A ∩ (B ∪ C)ᶜ",
+    "A \\ (B ∩ C)"
+  ], answer:0, explain:"(A\\B)\\C=(A∩Bᶜ)∩Cᶜ = A∩Bᶜ∩Cᶜ" },
+
+  { id:"L3-06", level:3, topic:"Simplify", prompt:"ยุบรูป: (A ∪ ∅) ∩ (A ∪ U) =", choices:[
+    "A", "U", "∅", "Aᶜ"
+  ], answer:0, explain:"A ∪ ∅=A และ A ∪ U=U ⇒ A ∩ U = A" },
+
+  { id:"L3-07", level:3, topic:"Simplify", prompt:"ยุบรูป: (A ∩ U) ∪ (A ∩ ∅) =", choices:[
+    "A", "U", "∅", "Aᶜ"
+  ], answer:0, explain:"A∩U=A และ A∩∅=∅ ⇒ A ∪ ∅ = A" },
+
+  { id:"L3-08", level:3, topic:"De Morgan", prompt:"นิพจน์ใดเท่ากับ (A ∪ Bᶜ)ᶜ ?", choices:[
+    "Aᶜ ∩ B",
+    "Aᶜ ∪ B",
+    "A ∩ Bᶜ",
+    "Aᶜ ∩ Bᶜ"
+  ], answer:0, explain:"(A ∪ Bᶜ)ᶜ = Aᶜ ∩ (Bᶜ)ᶜ = Aᶜ ∩ B" },
 ];
 
 /** =========================
  *  STATE
  *  ========================= */
 let turn = 0;
-let pendingRoll = null;      // แต้มเต๋าที่รอใช้
-let pendingQuestion = null;  // คำถามที่กำลังถาม
+let pendingRoll = null;
+let pendingQuestion = null;
 let timerId = null;
 let timeLeft = 30;
 const USED_Q = new Set();
 
 /** =========================
- *  UI ELEMENTS
+ *  UI
  *  ========================= */
 const boardEl = document.getElementById("board");
 const teamListEl = document.getElementById("teamList");
 const logEl = document.getElementById("log");
-
 const rollBtn = document.getElementById("rollBtn");
 const resetBtn = document.getElementById("resetBtn");
 const editTeamsBtn = document.getElementById("editTeamsBtn");
-
 const turnNameEl = document.getElementById("turnName");
 const turnPosEl = document.getElementById("turnPos");
 const lastRollEl = document.getElementById("lastRoll");
+document.getElementById("winCell").textContent = String(WIN);
 
 const qModal = document.getElementById("qModal");
 const qTitle = document.getElementById("qTitle");
@@ -303,13 +411,8 @@ function log(msg) {
 }
 
 function currentTeam() { return TEAMS[turn]; }
-
-function rollDice() {
-  // 1..6
-  return Math.floor(Math.random()*6)+1;
-}
-
-function clampTo100(pos) { return pos > 100 ? 100 : pos; }
+function rollDice() { return Math.floor(Math.random()*6)+1; }
+function clampToWin(pos) { return pos > WIN ? WIN : pos; }
 
 function nextTurn() {
   pendingRoll = null;
@@ -326,12 +429,11 @@ function updateHUD() {
 }
 
 function getCellNumberByGridIndex(i) {
-  // เราจะวาด 100..1 เพื่อให้กระดานเหมือนบันไดงู (แถวบนเป็น 100)
-  // และสลับทิศทางซ้าย-ขวาทุกแถว (serpentine)
-  const row = Math.floor(i / 10);        // 0..9
-  const col = i % 10;                    // 0..9
-  const base = 100 - row*10;             // เริ่มของแถวนั้น
-  const isEvenRow = row % 2 === 0;       // แถว 0 (บนสุด) เดินซ้าย->ขวา? เราจัดให้ serpentine
+  // 50 ช่อง: วาด 50..1 (แถวบนสุดเป็น 50) และ serpentine
+  const row = Math.floor(i / 10);   // 0..4
+  const col = i % 10;              // 0..9
+  const base = WIN - row*10;       // 50,40,30,20,10
+  const isEvenRow = row % 2 === 0;
   const n = isEvenRow ? (base - col) : (base - (9 - col));
   return n;
 }
@@ -343,12 +445,8 @@ function cellCenterPx(cellEl) {
 }
 
 function randomQuestion(levelPref = null) {
-  // เลือกคำถามที่ยังไม่ใช้ ถ้าหมดให้รีเซ็ต USED_Q
   let pool = QUESTION_BANK.filter(q => !USED_Q.has(q.id));
-  if (pool.length === 0) {
-    USED_Q.clear();
-    pool = QUESTION_BANK.slice();
-  }
+  if (pool.length === 0) { USED_Q.clear(); pool = QUESTION_BANK.slice(); }
   if (levelPref) pool = pool.filter(q => q.level === levelPref);
   if (pool.length === 0) pool = QUESTION_BANK.filter(q => !USED_Q.has(q.id));
   const q = pool[Math.floor(Math.random()*pool.length)];
@@ -366,10 +464,7 @@ function openQuestionModal(q) {
   q.choices.forEach((c, idx) => {
     const lab = document.createElement("label");
     lab.className = "choice";
-    lab.innerHTML = `
-      <input type="radio" name="choice" value="${idx}" />
-      <div>${c}</div>
-    `;
+    lab.innerHTML = `<input type="radio" name="choice" value="${idx}" /><div>${c}</div>`;
     qChoices.appendChild(lab);
   });
 
@@ -399,10 +494,7 @@ function startTimer() {
     }
   }, 1000);
 }
-function stopTimer() {
-  if (timerId) clearInterval(timerId);
-  timerId = null;
-}
+function stopTimer() { if (timerId) clearInterval(timerId); timerId = null; }
 
 function selectedChoiceIndex() {
   const el = document.querySelector('input[name="choice"]:checked');
@@ -411,15 +503,14 @@ function selectedChoiceIndex() {
 
 function applySnakeLadder(pos) {
   if (LADDER.has(pos)) return { type:"ladder", to: LADDER.get(pos) };
-  if (SNAKE.has(pos)) return { type:"snake", to: SNAKE.get(pos) };
+  if (SNAKE.has(pos))  return { type:"snake",  to: SNAKE.get(pos) };
   return null;
 }
 
 function moveTeam(steps) {
   const team = currentTeam();
   const from = team.pos;
-  team.pos = clampTo100(team.pos + steps);
-
+  team.pos = clampToWin(team.pos + steps);
   log(`${team.name} เดินจาก ${from} → ${team.pos} (เดิน ${steps})`);
 
   const sl = applySnakeLadder(team.pos);
@@ -432,13 +523,12 @@ function moveTeam(steps) {
   renderTokens();
   updateHUD();
 
-  if (team.pos >= 100) {
+  if (team.pos >= WIN) {
     log(`🏁 ${team.name} ชนะแล้ว!`);
     rollBtn.disabled = true;
     alert(`${team.name} ชนะแล้ว!`);
     return;
   }
-
   nextTurn();
 }
 
@@ -465,14 +555,13 @@ function resolveAnswer(isCorrect, reason="") {
  *  ========================= */
 function renderBoard() {
   boardEl.innerHTML = "";
-  for (let i=0; i<100; i++) {
+  for (let i=0; i<WIN; i++) { // 50 ช่อง
     const n = getCellNumberByGridIndex(i);
     const cell = document.createElement("div");
     cell.className = "cell";
     cell.dataset.num = n;
     cell.innerHTML = `<div>${n}</div><div class="tag"></div>`;
 
-    // tag ช่องพิเศษ
     const tag = cell.querySelector(".tag");
     if (LADDER.has(n)) { cell.classList.add("ladder"); tag.textContent = `🪜→${LADDER.get(n)}`; }
     if (SNAKE.has(n))  { cell.classList.add("snake");  tag.textContent = `🐍→${SNAKE.get(n)}`; }
@@ -481,7 +570,6 @@ function renderBoard() {
     boardEl.appendChild(cell);
   }
 
-  // layer tokens
   const layer = document.createElement("div");
   layer.className = "tokens";
   layer.id = "tokensLayer";
@@ -500,7 +588,6 @@ function renderTeams() {
         <small>ตำแหน่ง: ${t.pos} • คะแนน: ${t.score}</small>
       </div>
     `;
-    // ไฮไลต์ตาเล่น
     if (idx === turn) el.style.borderColor = "#2b57ff";
     teamListEl.appendChild(el);
   });
@@ -510,7 +597,6 @@ function renderTokens() {
   const layer = document.getElementById("tokensLayer");
   layer.innerHTML = "";
 
-  // กรณีทีมอยู่ช่องเดียวกัน จะกระจาย token รอบ ๆ จุดศูนย์กลาง
   const groups = new Map(); // pos -> teams[]
   TEAMS.forEach((t, idx) => {
     if (!groups.has(t.pos)) groups.set(t.pos, []);
@@ -544,14 +630,14 @@ function renderTokens() {
  *  GAME FLOW
  *  ========================= */
 function doRoll() {
-  if (pendingRoll !== null) return; // กันทอยซ้ำ
+  if (pendingRoll !== null) return;
   const r = rollDice();
   pendingRoll = r;
   lastRollEl.textContent = r;
 
-  // เลือกคำถามตามระดับแบบง่าย ๆ: ช่วงต้นเกม level1 กลาง game level2 ปลาย game level3
+  // แบ่งระดับตามตำแหน่งสำหรับเกม 50 ช่อง
   const pos = currentTeam().pos;
-  const levelPref = pos < 35 ? 1 : (pos < 70 ? 2 : 3);
+  const levelPref = pos < 18 ? 1 : (pos < 36 ? 2 : 3);
 
   const q = randomQuestion(levelPref);
   log(`🎲 ${currentTeam().name} ทอยได้ ${r} → เปิดคำถาม ${q.id}`);
@@ -593,7 +679,6 @@ editTeamsBtn.addEventListener("click", () => {
   const arr = names.split(",").map(s=>s.trim()).filter(Boolean);
   if (arr.length < 2) { alert("ขออย่างน้อย 2 ทีม"); return; }
 
-  // สร้างทีมใหม่ตามจำนวนที่กรอก (ใช้สีวน)
   const COLORS = ["#2b57ff","#ff7a42","#7bffb0","#ff4fa3","#ffd34a","#9a7bff","#4fd3ff","#ff6b6b"];
   TEAMS = arr.map((n,i)=>({ name:n, color:COLORS[i%COLORS.length], pos:1, score:0 }));
   turn = 0;
@@ -607,7 +692,6 @@ document.addEventListener("keydown", (e) => {
   if (e.code === "Escape") { if (qModal.classList.contains("open")) resolveAnswer(false, "ปิดคำถาม"); }
 });
 
-// close when click outside box
 qModal.addEventListener("click", (e) => {
   if (e.target === qModal) resolveAnswer(false, "ปิดหน้าต่าง");
 });
@@ -618,7 +702,7 @@ qModal.addEventListener("click", (e) => {
 renderBoard();
 updateHUD();
 renderTokens();
-log("พร้อมเล่น! กดทอยเต๋าได้เลย");
+log(`พร้อมเล่น! เป้าหมายช่อง ${WIN} • มีคำถามทั้งหมด ${QUESTION_BANK.length} ข้อ`);
 </script>
 </body>
 </html>
