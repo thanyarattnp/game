@@ -649,19 +649,20 @@ function renderTokens() {
   const groups = new Map();
   TEAMS.forEach((t, idx) => {
     if (!groups.has(t.pos)) groups.set(t.pos, []);
-    groups.get(t.pos).push({t, idx});
+    groups.get(t.pos).push({ t, idx });
   });
 
   groups.forEach((arr, pos) => {
-    const cell = boardEl.querySelector(\`.cell[data-num="\${pos}"]\`);
+    const cell = boardEl.querySelector(`.cell[data-num="${pos}"]`);
     if (!cell) return;
-    const c = cellCenterPx(cell);
 
+    const c = cellCenterPx(cell);
     const radius = 10;
+
     arr.forEach((item, k) => {
-      const angle = (Math.PI*2) * (k / arr.length);
-      const x = c.x + (arr.length === 1 ? 0 : Math.cos(angle)*radius);
-      const y = c.y + (arr.length === 1 ? 0 : Math.sin(angle)*radius);
+      const angle = (Math.PI * 2) * (k / arr.length);
+      const x = c.x + (arr.length === 1 ? 0 : Math.cos(angle) * radius);
+      const y = c.y + (arr.length === 1 ? 0 : Math.sin(angle) * radius);
 
       const tok = document.createElement("div");
       tok.className = "token";
@@ -674,6 +675,7 @@ function renderTokens() {
 
   renderTeams();
 }
+
 
 /** =========================
  *  GAME FLOW
