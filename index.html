@@ -1,181 +1,767 @@
 <!doctype html>
 <html lang="th">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Snakes & Ladders – Set Algebra (50)</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Snakes & Ladders: Set Algebra (50)</title>
+  <style>
+    :root { --cell: 58px; --gap: 6px; --radius: 14px; }
+    body { margin: 0; font-family: system-ui, sans-serif; background:#0b1220; color:#e8eefc; }
+    header { padding: 14px 16px; display:flex; gap:12px; align-items:center; justify-content:space-between; border-bottom:1px solid #1f2a44; }
+    .wrap { display:grid; grid-template-columns: 1.1fr 0.9fr; gap: 14px; padding: 14px; }
+    .card { background:#0f1a30; border:1px solid #1f2a44; border-radius: var(--radius); padding: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+    h1 { font-size: 16px; margin: 0; letter-spacing:.2px; }
+    .muted { color:#b8c7ee; font-size: 12px; }
+    button { border:0; background:#2b57ff; color:white; padding: 10px 12px; border-radius: 12px; cursor:pointer; font-weight: 650; }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    .btn2 { background:#1b2b55; border:1px solid #2a3d73; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .pill { background:#132246; border:1px solid #223565; padding:6px 10px; border-radius: 999px; font-size: 12px; }
+    .board {
+      position: relative;
+      display:grid;
+      grid-template-columns: repeat(10, var(--cell));
+      grid-template-rows: repeat(5, var(--cell)); /* 50 ช่อง = 10x5 */
+      gap: var(--gap);
+      user-select:none;
+      justify-content:center;
+      padding: 10px;
+      border-radius: var(--radius);
+      background: radial-gradient(1200px 600px at 30% 20%, rgba(43,87,255,.18), transparent 60%),
+                  radial-gradient(900px 500px at 70% 80%, rgba(255,122,66,.12), transparent 60%),
+                  #0b1328;
+      border:1px solid #1f2a44;
+    }
+    .cell {
+      background:#0f1a30;
+      border:1px solid #1f2a44;
+      border-radius: 12px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:flex-end;
+      padding:6px;
+      font-size:12px;
+      color:#b8c7ee;
+      position: relative;
+      overflow:hidden;
+    }
+    .cell .tag {
+      position:absolute; left:8px; bottom:6px;
+      font-size:11px; color:#d6ddff;
+      opacity:.85;
+    }
+    .cell.special { outline: 2px solid rgba(43,87,255,.35); }
+    .cell.snake { outline: 2px solid rgba(255, 80, 80, .35); }
+    .cell.ladder { outline: 2px solid rgba(80, 255, 160, .35); }
 
-<style>
-:root { --cell:58px; --gap:6px; --radius:14px; }
-body{
-  margin:0;font-family:system-ui,sans-serif;
-  background:#0b1220;color:#e8eefc;
-}
-header{
-  padding:14px 16px;display:flex;justify-content:space-between;
-  align-items:center;border-bottom:1px solid #1f2a44;
-}
-.wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;padding:14px}
-.card{
-  background:#0f1a30;border:1px solid #1f2a44;
-  border-radius:14px;padding:12px;
-}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.pill{
-  background:#132246;border:1px solid #223565;
-  padding:6px 10px;border-radius:999px;font-size:12px
-}
-button{
-  border:0;background:#2b57ff;color:white;
-  padding:10px 12px;border-radius:12px;
-  font-weight:650;cursor:pointer
-}
-button:disabled{opacity:.45}
-.btn2{background:#1b2b55;border:1px solid #2a3d73}
+    /* tokens */
+    .tokens { position:absolute; inset: 0; pointer-events:none; }
+    .token {
+      position:absolute;
+      width: 16px; height: 16px;
+      border-radius: 999px;
+      border:2px solid rgba(255,255,255,.9);
+      box-shadow: 0 6px 18px rgba(0,0,0,.35);
+      transform: translate(-50%, -50%);
+    }
 
-.board{
-  position:relative;
-  display:grid;
-  grid-template-columns:repeat(10,var(--cell));
-  grid-template-rows:repeat(5,var(--cell));
-  gap:var(--gap);padding:10px;
-  background:#0b1328;border:1px solid #1f2a44;
-  border-radius:14px;
-}
-.cell{
-  background:#0f1a30;border:1px solid #1f2a44;
-  border-radius:12px;padding:6px;
-  display:flex;justify-content:flex-end;
-  font-size:12px;color:#b8c7ee;
-  position:relative
-}
-.cell .tag{
-  position:absolute;left:8px;bottom:6px;
-  font-size:11px;color:#d6ddff
-}
-.cell.ladder{outline:2px solid rgba(80,255,160,.35)}
-.cell.snake{outline:2px solid rgba(255,80,80,.35)}
+    .legend { display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px; }
+    .team { display:flex; gap:10px; align-items:center; padding:8px; border-radius: 12px; border:1px solid #1f2a44; background:#0b1328; }
+    .dot { width:14px; height:14px; border-radius:999px; border:2px solid rgba(255,255,255,.85); }
+    .team b { font-size: 13px; }
+    .team small { display:block; color:#b8c7ee; font-size: 12px; margin-top:2px; }
 
-.tokens{position:absolute;inset:0;pointer-events:none}
-.token{
-  position:absolute;width:16px;height:16px;
-  border-radius:999px;border:2px solid #fff;
-  transform:translate(-50%,-50%)
-}
+    /* dice face */
+    .dice{
+      display:inline-grid;
+      place-items:center;
+      width:28px; height:28px;
+      border-radius:10px;
+      background:#0b1328;
+      border:1px solid #223565;
+      font-size:18px;
+      margin-right:6px;
+      vertical-align:middle;
+    }
 
-.legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.team{display:flex;gap:10px;align-items:center;
-  padding:8px;border:1px solid #1f2a44;border-radius:12px}
-.dot{width:14px;height:14px;border-radius:999px;border:2px solid #fff}
-
-.dice{
-  display:inline-grid;place-items:center;
-  width:28px;height:28px;border-radius:10px;
-  background:#0b1328;border:1px solid #223565;
-  font-size:18px;margin-right:6px
-}
-
-.modal{
-  position:fixed;inset:0;display:none;
-  place-items:center;background:rgba(0,0,0,.6)
-}
-.modal.open{display:grid}
-.modal .box{
-  background:#0f1a30;border:1px solid #2a3d73;
-  border-radius:18px;padding:14px;width:min(760px,100%)
-}
-.choice{display:flex;gap:8px;align-items:flex-start;
-  border:1px solid #1f2a44;background:#0b1328;
-  padding:8px;border-radius:10px;cursor:pointer
-}
-.log{max-height:260px;overflow:auto;font-size:12px}
-.log div{border-bottom:1px dashed rgba(255,255,255,.1);padding:4px 0}
-</style>
+    /* modal */
+    .modal {
+      position: fixed; inset:0; display:none; place-items:center;
+      background: rgba(0,0,0,.6);
+      padding: 16px;
+    }
+    .modal.open { display:grid; }
+    .modal .box {
+      width: min(760px, 100%);
+      background:#0f1a30;
+      border:1px solid #2a3d73;
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+    }
+    .q-head { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .q-title { font-size: 14px; font-weight: 750; }
+    .q-timer { font-variant-numeric: tabular-nums; }
+    .choices { margin-top:10px; display:grid; gap:8px; }
+    label.choice {
+      display:flex; gap:10px; align-items:flex-start;
+      padding: 10px; border-radius: 12px;
+      border:1px solid #1f2a44; background:#0b1328;
+      cursor:pointer;
+    }
+    label.choice input { margin-top:2px; }
+    .foot { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:12px; }
+    .log { max-height: 260px; overflow:auto; font-size:12px; color:#c8d3ff; line-height:1.4; }
+    .log div { padding:6px 0; border-bottom:1px dashed rgba(255,255,255,.08); }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#0b1328; border:1px solid #1f2a44; padding:2px 6px; border-radius:8px; font-size:12px; }
+  </style>
 </head>
-
 <body>
 <header>
   <div>
-    <b>🎲 บันไดงู : พีชคณิตของเซต (50 ช่อง)</b><br/>
-    <small>ตอบถูกถึงจะเดิน • แสดงลูกเต๋า + step การเดิน</small>
+    <h1>🎲 บันไดงู: พีชคณิตของเซต (50 ช่อง)</h1>
+    <div class="muted">6 ทีม • ตอบถูกถึงจะเดิน • แสดงลูกเต๋า + เส้นทางเดิน + Log</div>
   </div>
   <div class="row">
-    <button class="btn2" id="resetBtn">รีเซ็ต</button>
+    <button class="btn2" id="resetBtn">รีเซ็ตเกม</button>
     <button id="rollBtn">ทอยเต๋า</button>
   </div>
 </header>
 
 <div class="wrap">
-<!-- BOARD -->
-<div class="card">
-  <div class="row">
-    <span class="pill">ตาเล่น: <b id="turnName"></b></span>
-    <span class="pill">ตำแหน่ง: <b id="turnPos"></b></span>
-    <span class="pill">
-      ลูกเต๋า: <span id="diceFace" class="dice">–</span>
-      <b id="lastRoll">-</b>
-    </span>
-  </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between;">
+      <div class="row">
+        <span class="pill">ตาเล่น: <b id="turnName"></b></span>
+        <span class="pill">ตำแหน่ง: <b id="turnPos"></b></span>
+        <span class="pill">
+          ลูกเต๋า: <span class="dice" id="diceFace">–</span>
+          <b id="lastRoll">-</b>
+        </span>
+      </div>
+      <div class="row">
+        <span class="pill">ชนะที่ช่อง <b id="winCell">50</b></span>
+        <span class="pill">ตอบผิดเดิน <b>1</b> ช่อง</span>
+      </div>
+    </div>
 
-  <div style="margin-top:10px">
-    <div class="board" id="board"></div>
-    <div class="pill" style="margin-top:10px;width:100%">
-      เส้นทางการเดิน: <b id="moveSteps">-</b>
+    <div style="margin-top:12px;">
+      <div class="board" id="board"></div>
+      <div class="pill" style="margin-top:10px; width:100%;">
+        เส้นทางการเดิน: <b id="moveSteps">-</b>
+      </div>
+      <div class="muted" style="margin-top:8px;">
+        กรอบเขียว = บันได 🪜 • กรอบแดง = งู 🐍
+      </div>
     </div>
   </div>
-</div>
 
-<!-- SIDE -->
-<div class="card">
-  <b>ทีมทั้งหมด</b>
-  <div class="legend" id="teamList"></div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between;">
+      <div>
+        <div style="font-weight:800;">ทีมทั้งหมด</div>
+        <div class="muted">แนะนำ 30 คน = 6 ทีม ทีมละ 5 คน</div>
+      </div>
+      <div class="row">
+        <button class="btn2" id="editTeamsBtn">ตั้งค่าทีม</button>
+      </div>
+    </div>
 
-  <div style="margin-top:10px">
-    <b>Log การเล่น</b>
-    <div class="log" id="log"></div>
+    <div class="legend" id="teamList"></div>
+
+    <div style="margin-top:12px;">
+      <div style="font-weight:800; margin-bottom:6px;">Log การเล่น</div>
+      <div class="log" id="log"></div>
+    </div>
+
+    <div style="margin-top:10px;" class="muted">
+      คีย์ลัด: <span class="kbd">Space</span> ทอยเต๋า • <span class="kbd">Esc</span> ถือว่าผิด/ปิดคำถาม
+    </div>
   </div>
-</div>
 </div>
 
 <!-- QUESTION MODAL -->
-<div class="modal" id="qModal">
-<div class="box">
-  <b id="qTitle"></b>
-  <div id="qPrompt" style="margin:8px 0"></div>
-  <div id="qChoices"></div>
-  <div class="row" style="margin-top:10px;justify-content:space-between">
-    <span>เวลา: <b id="qTimer">30</b>s</span>
-    <div>
-      <button class="btn2" id="skipBtn">ข้าม</button>
-      <button id="submitBtn">ตอบ</button>
+<div class="modal" id="qModal" aria-hidden="true">
+  <div class="box">
+    <div class="q-head">
+      <div>
+        <div class="q-title" id="qTitle">คำถาม</div>
+        <div class="muted" id="qMeta"></div>
+      </div>
+      <div class="pill">เวลา: <b class="q-timer" id="qTimer">30</b>s</div>
+    </div>
+
+    <div id="qPrompt" style="margin-top:10px; font-size:14px; font-weight:650;"></div>
+    <div class="choices" id="qChoices"></div>
+
+    <div class="foot">
+      <div class="muted" id="qHint">ตอบถูก: เดินตามแต้ม • ตอบผิด/หมดเวลา: เดิน 1 ช่อง</div>
+      <div class="row">
+        <button class="btn2" id="skipBtn">ข้าม (ถือว่าผิด)</button>
+        <button id="submitBtn">ส่งคำตอบ</button>
+      </div>
     </div>
   </div>
 </div>
-</div>
 
 <script>
-/* ---------- CONFIG ---------- */
-const WIN=50;
-const LADDER=new Map([[2,11],[6,16],[9,22],[14,27],[20,35],[26,41],[33,45]]);
-const SNAKE=new Map([[18,7],[24,12],[29,17],[37,23],[43,30],[47,34],[49,38]]);
-const TEAMS=[
- {name:"ทีม A",color:"#2b57ff",pos:1,score:0},
- {name:"ทีม B",color:"#ff7a42",pos:1,score:0},
- {name:"ทีม C",color:"#7bffb0",pos:1,score:0},
- {name:"ทีม D",color:"#ff4fa3",pos:1,score:0},
- {name:"ทีม E",color:"#ffd34a",pos:1,score:0},
- {name:"ทีม F",color:"#9a7bff",pos:1,score:0},
+/** =========================
+ *  CONFIG / DATA
+ *  ========================= */
+const WIN = 50;
+
+// 6 ทีม
+let TEAMS = [
+  { name: "ทีม A", color: "#2b57ff", pos: 1, score: 0 },
+  { name: "ทีม B", color: "#ff7a42", pos: 1, score: 0 },
+  { name: "ทีม C", color: "#7bffb0", pos: 1, score: 0 },
+  { name: "ทีม D", color: "#ff4fa3", pos: 1, score: 0 },
+  { name: "ทีม E", color: "#ffd34a", pos: 1, score: 0 },
+  { name: "ทีม F", color: "#9a7bff", pos: 1, score: 0 },
 ];
 
-/* ---------- QUESTIONS (30) ---------- */
-const QUESTION_BANK=[
- {id:"Q1",level:1,prompt:"A ∪ ∅ = ?",choices:["∅","A","U","Aᶜ"],answer:1},
- {id:"Q2",level:1,prompt:"A ∩ Aᶜ = ?",choices:["U","A","∅","B"],answer:2},
- {id:"Q3",level:1,prompt:"A ∪ A = ?",choices:["A","U","∅","Aᶜ"],answer:0},
- {id:"Q4",level:1,prompt:"(Aᶜ)ᶜ = ?",choices:["A","∅","U","Aᶜ"],answer:0},
- {id:"Q5",level:1,prompt:"A ∩ U = ?",choices:["A","U","∅","Aᶜ"],answer:0},
+// บันได/งู
+const LADDER = new Map([
+  [2, 11],
+  [6, 16],
+  [9, 22],
+  [14, 27],
+  [20, 35],
+  [26, 41],
+  [33, 45],
+]);
 
- {id:"Q6",level:2,prompt:"A \\ B เท่ากับ?",choices:["A∪Bᶜ","A∩Bᶜ","Aᶜ∩B","(A∩B)ᶜ"],answer:1},
- {id:"Q7",level:2,prompt:"(A∩B)∪(A∩Bᶜ) = ?",choices:["A","B","A∪B","∅"],answer:0},
- {id:"Q8",level:2,prompt:"(A∪B)∩(A∪Bᶜ) = ?",choices:["A","B","A∪B","A∩B"],answer:0},
- {id:"Q9",level:2,prompt:"A∩(B∪C) =
+const SNAKE = new Map([
+  [18, 7],
+  [24, 12],
+  [29, 17],
+  [37, 23],
+  [43, 30],
+  [47, 34],
+  [49, 38],
+]);
+
+// QUESTION_BANK: 30 ข้อ (L1=12, L2=10, L3=8)
+const QUESTION_BANK = [
+  // ---------- Level 1 (12) ----------
+  { id:"L1-01", level:1, topic:"Identity", prompt:"ข้อใดถูกต้อง?", choices:[
+    "A ∪ ∅ = ∅", "A ∪ ∅ = A", "A ∩ ∅ = A", "Aᶜ ∪ A = ∅"
+  ], answer:1, explain:"Identity: A ∪ ∅ = A" },
+
+  { id:"L1-02", level:1, topic:"Complement", prompt:"ข้อใดถูกต้อง?", choices:[
+    "A ∩ Aᶜ = ∅", "A ∪ Aᶜ = ∅", "A ∩ U = ∅", "A ∪ U = A"
+  ], answer:0, explain:"Complement: A ∩ Aᶜ = ∅ และ A ∪ Aᶜ = U" },
+
+  { id:"L1-03", level:1, topic:"Domination", prompt:"ข้อใดถูกต้อง?", choices:[
+    "A ∪ U = A", "A ∩ U = ∅", "A ∩ U = A", "A ∩ ∅ = U"
+  ], answer:2, explain:"Domination/Identity: A ∩ U = A" },
+
+  { id:"L1-04", level:1, topic:"Idempotent", prompt:"ยุบรูป: A ∪ A =", choices:[
+    "A", "∅", "U", "Aᶜ"
+  ], answer:0, explain:"Idempotent: A ∪ A = A" },
+
+  { id:"L1-05", level:1, topic:"Idempotent", prompt:"ยุบรูป: A ∩ A =", choices:[
+    "A", "∅", "U", "Aᶜ"
+  ], answer:0, explain:"Idempotent: A ∩ A = A" },
+
+  { id:"L1-06", level:1, topic:"Commutative", prompt:"ข้อใดเป็นกฎสลับที่?", choices:[
+    "A ∪ B = B ∪ A",
+    "A ∪ (B ∪ C) = (A ∪ B) ∪ C",
+    "A ∪ (A ∩ B) = A",
+    "(A ∪ B)ᶜ = Aᶜ ∩ Bᶜ"
+  ], answer:0, explain:"Commutative: A ∪ B = B ∪ A (และ ∩ เช่นกัน)" },
+
+  { id:"L1-07", level:1, topic:"Associative", prompt:"ข้อใดเป็นกฎเปลี่ยนหมู่ (∩)?", choices:[
+    "A ∩ (B ∩ C) = (A ∩ B) ∩ C",
+    "A ∩ B = B ∩ A",
+    "A ∩ U = U",
+    "A ∩ ∅ = A"
+  ], answer:0, explain:"Associative: A ∩ (B ∩ C) = (A ∩ B) ∩ C" },
+
+  { id:"L1-08", level:1, topic:"Absorption", prompt:"ยุบรูป: A ∩ (A ∪ B) =", choices:[
+    "A", "B", "A ∪ B", "A ∩ B"
+  ], answer:0, explain:"Absorption: A ∩ (A ∪ B) = A" },
+
+  { id:"L1-09", level:1, topic:"Absorption", prompt:"ยุบรูป: A ∪ (A ∩ B) =", choices:[
+    "A", "B", "A ∪ B", "A ∩ B"
+  ], answer:0, explain:"Absorption: A ∪ (A ∩ B) = A" },
+
+  { id:"L1-10", level:1, topic:"De Morgan", prompt:"(A ∪ B)ᶜ เท่ากับข้อใด?", choices:[
+    "Aᶜ ∪ Bᶜ", "Aᶜ ∩ Bᶜ", "A ∩ B", "(Aᶜ)ᶜ ∩ (Bᶜ)ᶜ"
+  ], answer:1, explain:"De Morgan: (A ∪ B)ᶜ = Aᶜ ∩ Bᶜ" },
+
+  { id:"L1-11", level:1, topic:"De Morgan", prompt:"(A ∩ B)ᶜ เท่ากับข้อใด?", choices:[
+    "Aᶜ ∩ Bᶜ", "Aᶜ ∪ Bᶜ", "A ∪ B", "Aᶜ \\ Bᶜ"
+  ], answer:1, explain:"De Morgan: (A ∩ B)ᶜ = Aᶜ ∪ Bᶜ" },
+
+  { id:"L1-12", level:1, topic:"Complement", prompt:"ยุบรูป: (Aᶜ)ᶜ =", choices:[
+    "A", "∅", "U", "Aᶜ"
+  ], answer:0, explain:"Double complement: (Aᶜ)ᶜ = A" },
+
+  // ---------- Level 2 (10) ----------
+  { id:"L2-01", level:2, topic:"Difference", prompt:"A \\ B เท่ากับข้อใด?", choices:[
+    "A ∪ Bᶜ", "A ∩ Bᶜ", "Aᶜ ∩ B", "(A ∩ B)ᶜ"
+  ], answer:1, explain:"Difference: A \\ B = A ∩ Bᶜ" },
+
+  { id:"L2-02", level:2, topic:"Simplify", prompt:"ยุบรูป: (A ∩ B) ∪ (A ∩ Bᶜ) =", choices:[
+    "A", "B", "A ∩ B", "A ∪ B"
+  ], answer:0, explain:"A ∩ (B ∪ Bᶜ)=A ∩ U=A" },
+
+  { id:"L2-03", level:2, topic:"Simplify", prompt:"ยุบรูป: (A ∪ B) ∩ (A ∪ Bᶜ) =", choices:[
+    "A", "B", "A ∪ B", "A ∩ B"
+  ], answer:0, explain:"= A ∪ (B ∩ Bᶜ)=A ∪ ∅=A" },
+
+  { id:"L2-04", level:2, topic:"Distributive", prompt:"ยุบรูป: A ∩ (B ∪ C) =", choices:[
+    "(A ∩ B) ∪ (A ∩ C)",
+    "(A ∪ B) ∩ (A ∪ C)",
+    "A ∪ (B ∩ C)",
+    "(A ∩ B) ∩ C"
+  ], answer:0, explain:"Distributive: A ∩ (B ∪ C) = (A ∩ B) ∪ (A ∩ C)" },
+
+  { id:"L2-05", level:2, topic:"Distributive", prompt:"ยุบรูป: A ∪ (B ∩ C) =", choices:[
+    "(A ∪ B) ∩ (A ∪ C)",
+    "(A ∩ B) ∪ (A ∩ C)",
+    "A ∩ (B ∪ C)",
+    "A ∪ B ∪ C"
+  ], answer:0, explain:"Distributive: A ∪ (B ∩ C) = (A ∪ B) ∩ (A ∪ C)" },
+
+  { id:"L2-06", level:2, topic:"Simplify", prompt:"ยุบรูป: A ∩ (Aᶜ ∪ B) =", choices:[
+    "A ∩ B", "A ∪ B", "B", "∅"
+  ], answer:0, explain:"(A ∩ Aᶜ) ∪ (A ∩ B)=∅ ∪ (A ∩ B)=A ∩ B" },
+
+  { id:"L2-07", level:2, topic:"Simplify", prompt:"ยุบรูป: (A ∪ B) ∪ (A ∪ Bᶜ) =", choices:[
+    "A ∪ U", "A ∩ U", "A", "B"
+  ], answer:0, explain:"= A ∪ (B ∪ Bᶜ)=A ∪ U" },
+
+  { id:"L2-08", level:2, topic:"Simplify", prompt:"ยุบรูป: (A ∩ B) ∩ (A ∩ Bᶜ) =", choices:[
+    "A ∩ B", "A", "∅", "Bᶜ"
+  ], answer:2, explain:"มี B และ Bᶜ พร้อมกัน ⇒ B ∩ Bᶜ = ∅" },
+
+  { id:"L2-09", level:2, topic:"Difference", prompt:"ข้อใดเท่ากับ (A \\ B) ∪ (A ∩ B) ?", choices:[
+    "A", "B", "A ∪ B", "A \\ (A ∩ B)"
+  ], answer:0, explain:"A = (A∩B) ∪ (A∩Bᶜ) ดังนั้นรวมกันได้ A" },
+
+  { id:"L2-10", level:2, topic:"De Morgan", prompt:"ยุบรูป: (Aᶜ ∩ Bᶜ)ᶜ =", choices:[
+    "A ∩ B", "A ∪ B", "Aᶜ ∪ Bᶜ", "Aᶜ ∩ B"
+  ], answer:1, explain:"(Aᶜ ∩ Bᶜ)ᶜ = A ∪ B" },
+
+  // ---------- Level 3 (8) ----------
+  { id:"L3-01", level:3, topic:"Distributive", prompt:"ยุบรูป: (A ∪ B) ∩ (A ∪ C) =", choices:[
+    "A ∪ (B ∩ C)",
+    "(A ∩ B) ∪ (A ∩ C)",
+    "A ∩ (B ∪ C)",
+    "A ∪ B ∪ C"
+  ], answer:0, explain:"(A ∪ B) ∩ (A ∪ C) = A ∪ (B ∩ C)" },
+
+  { id:"L3-02", level:3, topic:"De Morgan", prompt:"นิพจน์ใดเท่ากับ (A ∩ Bᶜ)ᶜ ?", choices:[
+    "Aᶜ ∩ B", "Aᶜ ∪ B", "A ∪ Bᶜ", "Aᶜ ∩ Bᶜ"
+  ], answer:1, explain:"(A ∩ Bᶜ)ᶜ = Aᶜ ∪ B" },
+
+  { id:"L3-03", level:3, topic:"Simplify", prompt:"ยุบรูป: (A ∪ B) ∩ (Aᶜ ∪ B) =", choices:[
+    "B", "A", "A ∪ B", "A ∩ B"
+  ], answer:0, explain:"= B ∪ (A ∩ Aᶜ)=B" },
+
+  { id:"L3-04", level:3, topic:"Simplify", prompt:"ยุบรูป: (A ∩ B) ∪ (Aᶜ ∩ B) =", choices:[
+    "A", "B", "A ∪ B", "A ∩ B"
+  ], answer:1, explain:"ดึง B: B ∩ (A ∪ Aᶜ)=B" },
+
+  { id:"L3-05", level:3, topic:"Difference", prompt:"ยุบรูป: (A \\ B) \\ C =", choices:[
+    "A ∩ Bᶜ ∩ Cᶜ",
+    "A ∪ (Bᶜ ∩ Cᶜ)",
+    "A ∩ (B ∪ C)ᶜ",
+    "A \\ (B ∩ C)"
+  ], answer:0, explain:"(A\\B)\\C=(A∩Bᶜ)∩Cᶜ" },
+
+  { id:"L3-06", level:3, topic:"Simplify", prompt:"ยุบรูป: (A ∪ ∅) ∩ (A ∪ U) =", choices:[
+    "A", "U", "∅", "Aᶜ"
+  ], answer:0, explain:"A ∪ ∅=A และ A ∪ U=U ⇒ A ∩ U = A" },
+
+  { id:"L3-07", level:3, topic:"Simplify", prompt:"ยุบรูป: (A ∩ U) ∪ (A ∩ ∅) =", choices:[
+    "A", "U", "∅", "Aᶜ"
+  ], answer:0, explain:"A∩U=A และ A∩∅=∅ ⇒ A ∪ ∅ = A" },
+
+  { id:"L3-08", level:3, topic:"De Morgan", prompt:"นิพจน์ใดเท่ากับ (A ∪ Bᶜ)ᶜ ?", choices:[
+    "Aᶜ ∩ B",
+    "Aᶜ ∪ B",
+    "A ∩ Bᶜ",
+    "Aᶜ ∩ Bᶜ"
+  ], answer:0, explain:"(A ∪ Bᶜ)ᶜ = Aᶜ ∩ B" },
+];
+
+/** =========================
+ *  STATE
+ *  ========================= */
+let turn = 0;
+let pendingRoll = null;
+let pendingQuestion = null;
+let timerId = null;
+let timeLeft = 30;
+const USED_Q = new Set();
+
+/** =========================
+ *  UI
+ *  ========================= */
+const boardEl = document.getElementById("board");
+const teamListEl = document.getElementById("teamList");
+const logEl = document.getElementById("log");
+const rollBtn = document.getElementById("rollBtn");
+const resetBtn = document.getElementById("resetBtn");
+const editTeamsBtn = document.getElementById("editTeamsBtn");
+const turnNameEl = document.getElementById("turnName");
+const turnPosEl = document.getElementById("turnPos");
+const lastRollEl = document.getElementById("lastRoll");
+const diceFaceEl = document.getElementById("diceFace");
+const moveStepsEl = document.getElementById("moveSteps");
+document.getElementById("winCell").textContent = String(WIN);
+
+const qModal = document.getElementById("qModal");
+const qTitle = document.getElementById("qTitle");
+const qMeta = document.getElementById("qMeta");
+const qPrompt = document.getElementById("qPrompt");
+const qChoices = document.getElementById("qChoices");
+const qTimer = document.getElementById("qTimer");
+const submitBtn = document.getElementById("submitBtn");
+const skipBtn = document.getElementById("skipBtn");
+
+/** =========================
+ *  HELPERS
+ *  ========================= */
+function log(msg) {
+  const d = document.createElement("div");
+  const t = new Date().toLocaleTimeString("th-TH", { hour12:false });
+  d.textContent = `[${t}] ${msg}`;
+  logEl.prepend(d);
+}
+function currentTeam() { return TEAMS[turn]; }
+function rollDice() { return Math.floor(Math.random()*6)+1; }
+function clampToWin(pos) { return pos > WIN ? WIN : pos; }
+
+function diceFace(n){
+  const faces = ["","⚀","⚁","⚂","⚃","⚄","⚅"];
+  return faces[n] ?? "–";
+}
+
+function updateHUD() {
+  turnNameEl.textContent = currentTeam().name;
+  turnPosEl.textContent = currentTeam().pos;
+  lastRollEl.textContent = pendingRoll ?? "-";
+  diceFaceEl.textContent = pendingRoll ? diceFace(pendingRoll) : "–";
+}
+
+function nextTurn() {
+  pendingRoll = null;
+  pendingQuestion = null;
+  stopTimer();
+  turn = (turn + 1) % TEAMS.length;
+  updateHUD();
+  renderTeams();
+}
+
+function getCellNumberByGridIndex(i) {
+  // 50 ช่อง: วาด 50..1 (แถวบนสุดเป็น 50) และ serpentine
+  const row = Math.floor(i / 10);   // 0..4
+  const col = i % 10;              // 0..9
+  const base = WIN - row*10;       // 50,40,30,20,10
+  const isEvenRow = row % 2 === 0;
+  return isEvenRow ? (base - col) : (base - (9 - col));
+}
+
+function cellCenterPx(cellEl) {
+  const r = cellEl.getBoundingClientRect();
+  const b = boardEl.getBoundingClientRect();
+  return { x: r.left - b.left + r.width/2, y: r.top - b.top + r.height/2 };
+}
+
+function randomQuestion(levelPref = null) {
+  let pool = QUESTION_BANK.filter(q => !USED_Q.has(q.id));
+  if (pool.length === 0) { USED_Q.clear(); pool = QUESTION_BANK.slice(); }
+  if (levelPref) pool = pool.filter(q => q.level === levelPref);
+  if (pool.length === 0) pool = QUESTION_BANK.filter(q => !USED_Q.has(q.id));
+  const q = pool[Math.floor(Math.random()*pool.length)];
+  USED_Q.add(q.id);
+  return q;
+}
+
+function openQuestionModal(q) {
+  pendingQuestion = q;
+  qTitle.textContent = `คำถาม (Level ${q.level})`;
+  qMeta.textContent = `หัวข้อ: ${q.topic} • รหัส: ${q.id}`;
+  qPrompt.textContent = q.prompt;
+
+  qChoices.innerHTML = "";
+  q.choices.forEach((c, idx) => {
+    const lab = document.createElement("label");
+    lab.className = "choice";
+    lab.innerHTML = `<input type="radio" name="choice" value="${idx}" /><div>${c}</div>`;
+    qChoices.appendChild(lab);
+  });
+
+  qModal.classList.add("open");
+  qModal.setAttribute("aria-hidden","false");
+
+  timeLeft = 30;
+  qTimer.textContent = timeLeft;
+  startTimer();
+}
+
+function closeQuestionModal() {
+  qModal.classList.remove("open");
+  qModal.setAttribute("aria-hidden","true");
+  stopTimer();
+}
+
+function startTimer() {
+  stopTimer();
+  timerId = setInterval(() => {
+    timeLeft--;
+    qTimer.textContent = timeLeft;
+    if (timeLeft <= 0) {
+      stopTimer();
+      resolveAnswer(false, "หมดเวลา");
+    }
+  }, 1000);
+}
+function stopTimer() { if (timerId) clearInterval(timerId); timerId = null; }
+
+function selectedChoiceIndex() {
+  const el = document.querySelector('input[name="choice"]:checked');
+  return el ? Number(el.value) : null;
+}
+
+function applySnakeLadder(pos) {
+  if (LADDER.has(pos)) return { type:"ladder", to: LADDER.get(pos) };
+  if (SNAKE.has(pos))  return { type:"snake",  to: SNAKE.get(pos) };
+  return null;
+}
+
+/** ======= STEP MOVE (แสดงเส้นทาง) ======= */
+function buildStepPath(from, to){
+  const path = [];
+  for (let p = from + 1; p <= to; p++) path.push(p);
+  return path;
+}
+
+function moveTeam(steps) {
+  const team = currentTeam();
+  const from = team.pos;
+
+  const rawTo = clampToWin(team.pos + steps);
+  const path = buildStepPath(from, rawTo);
+
+  team.pos = rawTo;
+
+  // แสดง step การเดินปกติ
+  moveStepsEl.textContent = path.length ? `${from} → ${path.join(" → ")}` : `${from} (ไม่ขยับ)`;
+  log(`${team.name} เดินจาก ${from} → ${team.pos} (เดิน ${steps})`);
+
+  // งู/บันได
+  const sl = applySnakeLadder(team.pos);
+  if (sl) {
+    const before = team.pos;
+    team.pos = sl.to;
+
+    // แสดง step รวมกับงู/บันได
+    moveStepsEl.textContent = path.length
+      ? `${from} → ${path.join(" → ")} → ${team.pos}`
+      : `${from} → ${team.pos}`;
+
+    log(`${team.name} เจอ${sl.type === "ladder" ? "บันได 🪜" : "งู 🐍"}: ${before} → ${team.pos}`);
+  }
+
+  renderTokens();
+  updateHUD();
+
+  if (team.pos >= WIN) {
+    log(`🏁 ${team.name} ชนะแล้ว!`);
+    rollBtn.disabled = true;
+    alert(`${team.name} ชนะแล้ว!`);
+    return;
+  }
+
+  nextTurn();
+}
+
+function resolveAnswer(isCorrect, reason="") {
+  const team = currentTeam();
+  closeQuestionModal();
+
+  const roll = pendingRoll ?? 0;
+  const steps = isCorrect ? roll : 1;
+
+  if (isCorrect) {
+    team.score += 1;
+    log(`✅ ${team.name} ตอบถูก (${pendingQuestion?.id}) → เดิน ${roll}`);
+  } else {
+    log(`❌ ${team.name} ตอบผิด/ข้าม (${pendingQuestion?.id}) ${reason ? "• "+reason : ""} → เดิน 1`);
+    if (pendingQuestion?.explain) log(`เฉลยสั้น: ${pendingQuestion.explain}`);
+  }
+
+  moveTeam(steps);
+}
+
+/** =========================
+ *  RENDER
+ *  ========================= */
+function renderBoard() {
+  boardEl.innerHTML = "";
+  for (let i=0; i<WIN; i++) {
+    const n = getCellNumberByGridIndex(i);
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.dataset.num = n;
+    cell.innerHTML = `<div>${n}</div><div class="tag"></div>`;
+
+    const tag = cell.querySelector(".tag");
+    if (LADDER.has(n)) { cell.classList.add("ladder"); tag.textContent = `🪜→${LADDER.get(n)}`; }
+    if (SNAKE.has(n))  { cell.classList.add("snake");  tag.textContent = `🐍→${SNAKE.get(n)}`; }
+    if (LADDER.has(n) || SNAKE.has(n)) cell.classList.add("special");
+
+    boardEl.appendChild(cell);
+  }
+
+  const layer = document.createElement("div");
+  layer.className = "tokens";
+  layer.id = "tokensLayer";
+  boardEl.appendChild(layer);
+}
+
+function renderTeams() {
+  teamListEl.innerHTML = "";
+  TEAMS.forEach((t, idx) => {
+    const el = document.createElement("div");
+    el.className = "team";
+    el.innerHTML = `
+      <div class="dot" style="background:${t.color}"></div>
+      <div>
+        <b>${t.name}</b>
+        <small>ตำแหน่ง: ${t.pos} • คะแนน: ${t.score}</small>
+      </div>
+    `;
+    if (idx === turn) el.style.borderColor = "#2b57ff";
+    teamListEl.appendChild(el);
+  });
+}
+
+function renderTokens() {
+  const layer = document.getElementById("tokensLayer");
+  layer.innerHTML = "";
+
+  const groups = new Map();
+  TEAMS.forEach((t, idx) => {
+    if (!groups.has(t.pos)) groups.set(t.pos, []);
+    groups.get(t.pos).push({t, idx});
+  });
+
+  groups.forEach((arr, pos) => {
+    const cell = boardEl.querySelector(\`.cell[data-num="\${pos}"]\`);
+    if (!cell) return;
+    const c = cellCenterPx(cell);
+
+    const radius = 10;
+    arr.forEach((item, k) => {
+      const angle = (Math.PI*2) * (k / arr.length);
+      const x = c.x + (arr.length === 1 ? 0 : Math.cos(angle)*radius);
+      const y = c.y + (arr.length === 1 ? 0 : Math.sin(angle)*radius);
+
+      const tok = document.createElement("div");
+      tok.className = "token";
+      tok.style.background = item.t.color;
+      tok.style.left = x + "px";
+      tok.style.top = y + "px";
+      layer.appendChild(tok);
+    });
+  });
+
+  renderTeams();
+}
+
+/** =========================
+ *  GAME FLOW
+ *  ========================= */
+function doRoll() {
+  if (pendingRoll !== null) return;
+  const r = rollDice();
+  pendingRoll = r;
+
+  // อัปเดตหน้าลูกเต๋าทันที
+  lastRollEl.textContent = r;
+  diceFaceEl.textContent = diceFace(r);
+
+  // แบ่งระดับตามตำแหน่ง
+  const pos = currentTeam().pos;
+  const levelPref = pos < 18 ? 1 : (pos < 36 ? 2 : 3);
+
+  const q = randomQuestion(levelPref);
+  log(`🎲 ${currentTeam().name} ทอยได้ ${r} → เปิดคำถาม ${q.id}`);
+  openQuestionModal(q);
+}
+
+function resetGame() {
+  TEAMS = TEAMS.map(t => ({...t, pos:1, score:0}));
+  turn = 0;
+  pendingRoll = null;
+  pendingQuestion = null;
+  USED_Q.clear();
+  rollBtn.disabled = false;
+  logEl.innerHTML = "";
+  moveStepsEl.textContent = "-";
+  diceFaceEl.textContent = "–";
+  log("รีเซ็ตเกมเรียบร้อย");
+  updateHUD();
+  renderTokens();
+}
+
+/** =========================
+ *  EVENTS
+ *  ========================= */
+rollBtn.addEventListener("click", doRoll);
+resetBtn.addEventListener("click", resetGame);
+
+submitBtn.addEventListener("click", () => {
+  const idx = selectedChoiceIndex();
+  if (idx === null) { alert("เลือกคำตอบก่อนนะ"); return; }
+  const ok = idx === pendingQuestion.answer;
+  resolveAnswer(ok);
+});
+
+skipBtn.addEventListener("click", () => resolveAnswer(false, "ข้าม"));
+
+editTeamsBtn.addEventListener("click", () => {
+  const names = prompt("ใส่ชื่อทีมคั่นด้วยเครื่องหมาย , (เช่น ทีม1,ทีม2,...)",
+                       TEAMS.map(t=>t.name).join(","));
+  if (!names) return;
+  const arr = names.split(",").map(s=>s.trim()).filter(Boolean);
+  if (arr.length < 2) { alert("ขออย่างน้อย 2 ทีม"); return; }
+
+  const COLORS = ["#2b57ff","#ff7a42","#7bffb0","#ff4fa3","#ffd34a","#9a7bff","#4fd3ff","#ff6b6b"];
+  TEAMS = arr.map((n,i)=>({ name:n, color:COLORS[i%COLORS.length], pos:1, score:0 }));
+  turn = 0;
+  pendingRoll = null;
+  pendingQuestion = null;
+  rollBtn.disabled = false;
+  moveStepsEl.textContent = "-";
+  diceFaceEl.textContent = "–";
+  updateHUD();
+  renderTokens();
+  log(`ตั้งค่าทีมใหม่: ${arr.join(" / ")}`);
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space") { e.preventDefault(); if (!qModal.classList.contains("open")) doRoll(); }
+  if (e.code === "Escape") { if (qModal.classList.contains("open")) resolveAnswer(false, "ปิดคำถาม"); }
+});
+
+qModal.addEventListener("click", (e) => {
+  if (e.target === qModal) resolveAnswer(false, "ปิดหน้าต่าง");
+});
+
+/** =========================
+ *  INIT
+ *  ========================= */
+renderBoard();
+updateHUD();
+renderTokens();
+log(`พร้อมเล่น! เป้าหมายช่อง ${WIN} • คำถามทั้งหมด ${QUESTION_BANK.length} ข้อ`);
+</script>
+</body>
+</html>
